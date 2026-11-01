@@ -10,11 +10,11 @@ try:
         raise ImportError
 except (metadata.PackageNotFoundError, ImportError, ValueError) as e:
     raise ImportError("Please install 'rsl-rl-lib>=5.0.0'.") from e
-from rsl_rl.runners import OnPolicyRunner
 
 import genesis as gs
 
 from go2_env import Go2Env
+from go2_runner import Go2Runner
 
 
 def main():
@@ -31,6 +31,8 @@ def main():
     with open(f"logs/{args.exp_name}/cfgs.pkl", "rb") as f:
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(f)
     reward_cfg["reward_scales"] = {}
+    if "curriculum" in command_cfg:
+        command_cfg["curriculum"]["enabled"] = False  # 回放恢复模型保存的等级，不在回放中自动升级。
 
     env = Go2Env(
         num_envs=1,
@@ -41,7 +43,7 @@ def main():
         show_viewer=True,
     )
 
-    runner = OnPolicyRunner(env, train_cfg, log_dir, device=gs.device)
+    runner = Go2Runner(env, train_cfg, log_dir, device=gs.device)
     runner.load(os.path.join(log_dir, f"model_{args.ckpt}.pt"))
     policy = runner.get_inference_policy(device=gs.device)
 
